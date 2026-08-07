@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Base de conhecimento</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>"
+    />
+  </head>
+  <body>
+    <div class="admin">
+      <header>
+        <div>
+          <h1>Base de conhecimento</h1>
+          <p class="status" style="margin: 4px 0 0">
+            O que estiver aqui é o que a IA trata como verdade da casa. Salvar recarrega na hora.
+          </p>
+        </div>
+        <a href="/" class="btn-fantasma">← Voltar ao chat</a>
+      </header>
+
+      <div class="admin-grade">
+        <div>
+          <div class="lista-arquivos" style="margin-bottom: 16px">
+            <h4>Base</h4>
+            <div id="lista-base"></div>
+          </div>
+          <div class="lista-arquivos">
+            <h4>Comandos</h4>
+            <div id="lista-comandos"></div>
+          </div>
+        </div>
+
+        <div class="editor">
+          <textarea id="editor" spellcheck="false" placeholder="Escolha um arquivo à esquerda…"></textarea>
+          <div class="editor-acoes">
+            <button id="btn-salvar" class="btn-primario" disabled>Salvar</button>
+            <span id="status" class="status"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/admin.js"></script>
+  </body>
+</html>

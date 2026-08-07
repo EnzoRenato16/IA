@@ -1,0 +1,27 @@
+{
+  "name": "ia-assessoria",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "IA padronizada para assessoria de investimentos",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "build": "tsc",
+    "start": "node --env-file-if-exists=.env dist/src/server.js",
+    "criar-usuario": "tsx --env-file-if-exists=.env scripts/criar-usuario.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/bedrock-sdk": "^0.32.1",
+    "@anthropic-ai/sdk": "^0.68.0",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

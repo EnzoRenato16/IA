@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IA da Assessoria</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>"
+    />
+  </head>
+  <body>
+    <!-- ---------- LOGIN ---------- -->
+    <div id="tela-login" class="tela-login">
+      <form id="form-login" class="cartao-login">
+        <h1 id="titulo-login">IA da Assessoria</h1>
+        <p class="sub">Acesso restrito à equipe</p>
+        <label>E-mail<input type="email" name="email" autocomplete="username" required /></label>
+        <label>Senha<input type="password" name="senha" autocomplete="current-password" required /></label>
+        <button type="submit">Entrar</button>
+        <p id="erro-login" class="erro" hidden></p>
+      </form>
+    </div>
+
+    <!-- ---------- APLICATIVO ---------- -->
+    <div id="app" class="app" hidden>
+      <aside class="lateral" id="lateral">
+        <div class="lateral-topo">
+          <strong id="nome-assessoria">Assessoria</strong>
+          <button id="btn-nova" class="btn-fantasma" title="Nova conversa">+ Nova</button>
+        </div>
+        <nav id="lista-conversas" class="lista-conversas"></nav>
+        <div class="lateral-rodape">
+          <div class="usuario">
+            <span id="nome-usuario"></span>
+            <small id="papel-usuario"></small>
+          </div>
+          <div class="acoes-rodape">
+            <a href="/admin" id="link-admin" class="btn-fantasma" hidden>Base</a>
+            <button id="btn-sair" class="btn-fantasma">Sair</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="principal">
+        <header class="cabecalho">
+          <button id="btn-menu" class="btn-fantasma so-mobile">☰</button>
+          <h2 id="titulo-conversa">Nova conversa</h2>
+        </header>
+
+        <div id="mensagens" class="mensagens">
+          <div class="boas-vindas" id="boas-vindas">
+            <h3>No que posso ajudar?</h3>
+            <p>Digite <code>/</code> para ver os comandos, ou cole uma print direto aqui.</p>
+            <div id="grade-comandos" class="grade-comandos"></div>
+          </div>
+        </div>
+
+        <div class="area-envio">
+          <div id="anexos" class="anexos" hidden></div>
+          <div id="menu-comandos" class="menu-comandos" hidden></div>
+          <form id="form-envio" class="form-envio">
+            <button type="button" id="btn-anexar" class="btn-anexar" title="Anexar imagem">📎</button>
+            <textarea
+              id="entrada"
+              rows="1"
+              placeholder="Escreva, cole uma print (Ctrl+V) ou digite / para os comandos…"
+            ></textarea>
+            <button type="submit" id="btn-enviar" class="btn-enviar" title="Enviar">↑</button>
+          </form>
+          <input type="file" id="input-arquivo" accept="image/*" multiple hidden />
+          <p class="aviso-rodape">
+            Ferramenta de apoio interno. Não faz recomendação de investimento — confira os dados
+            antes de enviar a clientes.
+          </p>
+        </div>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
