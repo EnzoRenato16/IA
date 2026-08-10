@@ -173,6 +173,13 @@ if (listarUsuarios().length === 0) {
 app.listen(config.porta, () => {
   console.log(`\n  ${config.nomeAssessoria} — IA interna`);
   console.log(`  http://localhost:${config.porta}`);
-  console.log(`  provider: ${config.provider} · modelo: ${config.modelo} · esforço: ${config.esforco}`);
-  console.log(`  base: ${k.base.length} arquivos · comandos: ${k.comandos.length}\n`);
+  console.log(`  provider: ${config.provider} · esforço: ${config.esforco}`);
+  console.log(`  modelo padrão: ${config.modelo}`);
+  console.log(`  modelo rápido: ${config.modeloRapido}`);
+  const rapidos = k.comandos.filter((c) => c.modelo === "rapido").map((c) => `/${c.nome}`);
+  console.log(
+    `  base: ${k.base.length} arquivos · comandos: ${k.comandos.length}` +
+      (rapidos.length ? ` (no rápido: ${rapidos.join(" ")})` : ""),
+  );
+  console.log("");
 });

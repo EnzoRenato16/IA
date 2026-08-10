@@ -3,6 +3,7 @@ nome: revisar
 titulo: Revisar antes de enviar
 descricao: Revisa um texto que vai para o cliente — compliance, clareza e padrão da casa
 aceita_imagem: opcional
+modelo: padrao
 ---
 
 Revise o texto que o assessor escreveu, **antes de ele enviar**. Três passagens, nesta

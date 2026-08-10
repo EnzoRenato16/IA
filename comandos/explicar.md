@@ -3,6 +3,10 @@ nome: explicar
 titulo: Explicar para o cliente
 descricao: Traduz um conceito ou produto para linguagem de cliente leigo
 aceita_imagem: opcional
+# Texto vai ao cliente e tem regra de compliance ("não termine sugerindo investir"),
+# então fica no modelo forte. Troque para "rapido" se testar e achar suficiente.
+modelo: padrao
+esforco: low
 ---
 
 Explique o conceito, produto ou situação de forma que **um cliente sem formação

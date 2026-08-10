@@ -26,6 +26,15 @@
 
 * { box-sizing: border-box; }
 
+/*
+ * O atributo `hidden` do HTML só funciona porque o navegador aplica
+ * `[hidden] { display: none }`. Qualquer regra nossa com `display` — como
+ * `.app { display: flex }` — vence essa regra e o elemento continua visível.
+ * Era por isso que a tela de login não desaparecia depois de entrar: o app
+ * carregava abaixo dela. O !important garante que `hidden` sempre esconda.
+ */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   font-family: var(--fonte);

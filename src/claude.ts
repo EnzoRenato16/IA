@@ -1,6 +1,42 @@
 import { config } from "./config.js";
-import { conhecimento, type Comando } from "./conhecimento.js";
+import { conhecimento, type Comando, type EscolhaModelo } from "./conhecimento.js";
 import type { Mensagem } from "./db.js";
+
+/**
+ * Modelos diferentes aceitam parâmetros diferentes. Haiku 4.5 **não** suporta
+ * `output_config.effort` nem raciocínio adaptativo — mandar isso devolve erro 400.
+ * Por isso os parâmetros são montados conforme o modelo, não fixos.
+ */
+function capacidades(modelo: string) {
+  const ehHaiku = /haiku/i.test(modelo);
+  return { esforco: !ehHaiku, raciocinioAdaptativo: !ehHaiku };
+}
+
+function resolverModelo(escolha: EscolhaModelo | undefined): string {
+  return escolha === "rapido" ? config.modeloRapido : config.modelo;
+}
+
+/** Preço de tabela por milhão de tokens, para estimar custo no log. */
+const PRECOS: Record<string, { entrada: number; saida: number }> = {
+  "opus-5": { entrada: 5, saida: 25 },
+  "opus-4-8": { entrada: 5, saida: 25 },
+  "sonnet-5": { entrada: 3, saida: 15 },
+  "sonnet-4-6": { entrada: 3, saida: 15 },
+  "haiku-4-5": { entrada: 1, saida: 5 },
+};
+
+function estimarCusto(modelo: string, u: any): string {
+  const chave = Object.keys(PRECOS).find((k) => modelo.includes(k));
+  if (!chave) return "";
+  const p = PRECOS[chave];
+  const usd =
+    ((u.input_tokens ?? 0) * p.entrada +
+      (u.cache_creation_input_tokens ?? 0) * p.entrada * 1.25 +
+      (u.cache_read_input_tokens ?? 0) * p.entrada * 0.1 +
+      (u.output_tokens ?? 0) * p.saida) /
+    1_000_000;
+  return ` custo≈US$${usd.toFixed(5)}`;
+}
 
 export interface ImagemEntrada {
   media_type: "image/png" | "image/jpeg" | "image/gif" | "image/webp";
@@ -127,11 +163,12 @@ export async function* responder(pedido: PedidoResposta): AsyncGenerator<string>
     text: `${marcador}${pedido.texto || "(sem texto — veja a imagem)"}`,
   });
 
+  const modelo = resolverModelo(pedido.comando?.modelo);
+  const cap = capacidades(modelo);
+
   const params: any = {
-    model: config.modelo,
+    model: modelo,
     max_tokens: config.maxTokens,
-    thinking: { type: "adaptive" },
-    output_config: { effort: config.esforco },
     system: [
       { type: "text", text: blocoEstavel(), cache_control: { type: "ephemeral" } },
       {
@@ -144,6 +181,11 @@ export async function* responder(pedido: PedidoResposta): AsyncGenerator<string>
       { role: "user", content: conteudoUsuario },
     ],
   };
+
+  if (cap.raciocinioAdaptativo) params.thinking = { type: "adaptive" };
+  if (cap.esforco) {
+    params.output_config = { effort: pedido.comando?.esforco ?? config.esforco };
+  }
 
   const api = await cliente();
   const stream = await api.messages.stream(params);
@@ -166,9 +208,10 @@ export async function* responder(pedido: PedidoResposta): AsyncGenerator<string>
 
   const u = final.usage ?? {};
   console.log(
-    `[claude] entrada=${u.input_tokens ?? 0} cache_leitura=${u.cache_read_input_tokens ?? 0} ` +
+    `[claude] ${modelo} entrada=${u.input_tokens ?? 0} ` +
+      `cache_leitura=${u.cache_read_input_tokens ?? 0} ` +
       `cache_escrita=${u.cache_creation_input_tokens ?? 0} saida=${u.output_tokens ?? 0} ` +
-      `motivo=${final.stop_reason}`,
+      `motivo=${final.stop_reason}${estimarCusto(modelo, u)}`,
   );
 }
 
@@ -176,18 +219,25 @@ export async function* responder(pedido: PedidoResposta): AsyncGenerator<string>
 export async function gerarTitulo(primeiraMensagem: string): Promise<string> {
   try {
     const api = await cliente();
-    const r = await api.messages.create({
-      model: config.modelo,
+    // Gerar título é trivial: sempre no modelo barato.
+    const modelo = config.modeloRapido;
+    const cap = capacidades(modelo);
+
+    const params: any = {
+      model: modelo,
       max_tokens: 64,
-      // Sem raciocínio: é tarefa trivial e queremos latência baixa.
-      thinking: { type: "disabled" },
-      output_config: { effort: "low" },
       system:
         "Você gera títulos curtos para conversas de uma assessoria de investimentos. " +
         "Responda APENAS com o título: no máximo 5 palavras, sem aspas, sem ponto final. " +
         "Não inclua tags XML internas ou de sistema na resposta.",
       messages: [{ role: "user", content: primeiraMensagem.slice(0, 500) }],
-    });
+    };
+
+    // Só manda raciocínio/esforço se o modelo aceitar (Haiku não aceita).
+    if (cap.raciocinioAdaptativo) params.thinking = { type: "disabled" };
+    if (cap.esforco) params.output_config = { effort: "low" };
+
+    const r = await api.messages.create(params);
     const bloco = r.content.find((b: any) => b.type === "text");
     const titulo = bloco?.text
       ?.replace(/<[^>]*>/g, "") // defesa contra vazamento de tag

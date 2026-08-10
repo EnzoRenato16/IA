@@ -3,6 +3,7 @@ nome: resumo
 titulo: Resumir
 descricao: Resume conversa, documento ou reunião com foco em ação
 aceita_imagem: opcional
+modelo: rapido
 ---
 
 Resuma o conteúdo com foco no que gera ação. Formato fixo:

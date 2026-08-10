@@ -37,16 +37,19 @@ if (provider !== "anthropic" && provider !== "bedrock") {
   process.exit(1);
 }
 
-const modeloBase = process.env.MODEL ?? "claude-opus-5";
+/** No Bedrock os IDs levam prefixo "anthropic.". Aplicado automaticamente. */
+function idModelo(id: string): string {
+  return provider === "bedrock" && !id.startsWith("anthropic.") ? `anthropic.${id}` : id;
+}
 
 export const config = {
   provider: provider as "anthropic" | "bedrock",
 
-  // No Bedrock os IDs levam prefixo "anthropic." — aplicado automaticamente.
-  modelo:
-    provider === "bedrock" && !modeloBase.startsWith("anthropic.")
-      ? `anthropic.${modeloBase}`
-      : modeloBase,
+  /** Modelo forte: raciocínio, visão, compliance. */
+  modelo: idModelo(process.env.MODEL ?? "claude-opus-5"),
+
+  /** Modelo barato para tarefas simples. ~5x mais baixo que o Opus. */
+  modeloRapido: idModelo(process.env.MODEL_RAPIDO ?? "claude-haiku-4-5"),
 
   // AWS_REGION é lido pelo próprio SDK, mas exigimos explícito para falhar cedo.
   awsRegion: process.env.AWS_REGION ?? "us-east-1",

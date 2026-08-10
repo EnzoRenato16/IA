@@ -3,6 +3,7 @@ nome: checklist
 titulo: Checklist de processo
 descricao: Devolve o checklist da casa para a situação descrita
 aceita_imagem: opcional
+modelo: rapido
 ---
 
 Identifique de qual processo o usuário está falando e devolva o checklist

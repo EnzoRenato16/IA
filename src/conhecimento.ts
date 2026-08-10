@@ -2,11 +2,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { config } from "./config.js";
 
+export type EscolhaModelo = "padrao" | "rapido";
+
 export interface Comando {
   nome: string;
   titulo: string;
   descricao: string;
   aceitaImagem: "obrigatoria" | "opcional" | "nao";
+  /** "rapido" usa o modelo barato. Definido no frontmatter do comando. */
+  modelo: EscolhaModelo;
+  /** Sobrescreve EFFORT só para este comando. Ignorado pelo modelo rápido. */
+  esforco?: string;
   instrucoes: string;
   arquivo: string;
 }
@@ -33,6 +39,7 @@ function separarFrontmatter(texto: string): { meta: Record<string, string>; corp
   const meta: Record<string, string> = {};
 
   for (const linha of bloco.split("\n")) {
+    if (linha.trim().startsWith("#")) continue; // comentário
     const sep = linha.indexOf(":");
     if (sep === -1) continue;
     const chave = linha.slice(0, sep).trim();
@@ -74,6 +81,8 @@ function carregar(): Conhecimento {
         aceita === "obrigatoria" || aceita === "opcional" || aceita === "nao"
           ? aceita
           : "opcional",
+      modelo: meta.modelo === "rapido" ? "rapido" : "padrao",
+      esforco: meta.esforco || undefined,
       instrucoes: corpo.trim(),
       arquivo,
     } satisfies Comando;

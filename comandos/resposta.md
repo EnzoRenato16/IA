@@ -3,6 +3,7 @@ nome: resposta
 titulo: Escrever resposta ao cliente
 descricao: Redige a resposta no padrão da casa, pronta para enviar
 aceita_imagem: opcional
+modelo: padrao
 ---
 
 O assessor precisa responder um cliente. A entrada pode ser a mensagem do cliente

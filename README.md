@@ -81,11 +81,53 @@ Comuns aos dois:
 | Variável | Padrão | O que faz |
 |---|---|---|
 | `SESSION_SECRET` | — | **Obrigatória.** Assina o cookie de sessão. Gere uma aleatória. |
-| `MODEL` | `claude-opus-5` | Modelo usado |
-| `EFFORT` | `medium` | Profundidade do raciocínio: `low`…`max`. Mais alto = melhor e mais caro/lento. |
+| `MODEL` | `claude-opus-5` | Modelo forte |
+| `MODEL_RAPIDO` | `claude-haiku-4-5` | Modelo barato para tarefas simples |
+| `EFFORT` | `medium` | Profundidade do raciocínio do modelo forte: `low`…`max` |
 | `MAX_TOKENS` | `8000` | Teto de saída por resposta |
 | `NOME_ASSESSORIA` | `Assessoria` | Aparece na interface |
 | `PORT` | `3000` | Porta |
+
+### Dois modelos, por comando
+
+Tarefa simples não precisa do modelo caro. Cada comando escolhe o seu no
+frontmatter:
+
+```markdown
+---
+nome: resumo
+modelo: rapido      # usa MODEL_RAPIDO
+---
+```
+
+`modelo: rapido` | `modelo: padrao` (padrão quando omitido). Comandos podem ainda
+sobrescrever o esforço com `esforco: low`.
+
+Medido neste projeto, mesma tarefa de `/resumo` com o cache quente:
+
+| Modelo | Custo da chamada |
+|---|---|
+| `claude-haiku-4-5` | US$ 0,0018 |
+| `claude-opus-5` | US$ 0,0209 |
+
+**11x mais barato.** A distribuição atual:
+
+| No modelo rápido | No modelo forte | Por quê |
+|---|---|---|
+| `/resumo`, `/checklist` | `/print`, `/resposta`, `/comparar`, `/revisar`, `/explicar` | O grupo da direita lê imagem, produz texto que vai ao cliente ou aplica regra de compliance — aí vale pagar pelo modelo melhor. |
+
+Geração de título de conversa usa sempre o modelo rápido.
+
+Teste antes de mover um comando para `rapido`: o modelo barato segue instruções
+com menos rigor, e é justamente o rigor que sustenta o guardrail de compliance.
+
+> ⚠️ **Detalhe técnico:** o Haiku 4.5 não aceita `effort` nem raciocínio
+> adaptativo — mandar esses parâmetros devolve erro 400. O código detecta o
+> modelo e monta os parâmetros conforme a capacidade dele. Se você trocar
+> `MODEL_RAPIDO` por outro modelo, confira o que ele aceita.
+>
+> O cache do prompt é por modelo, então a base (~9 mil tokens) é gravada em cache
+> uma vez para cada um. Compensa a partir da segunda chamada de cada modelo.
 
 ---
 

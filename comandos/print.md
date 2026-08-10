@@ -3,6 +3,7 @@ nome: print
 titulo: Ler print
 descricao: Transcreve fielmente uma imagem e interpreta no padrão da casa
 aceita_imagem: obrigatoria
+modelo: padrao
 ---
 
 O usuário enviou uma ou mais imagens (print de tela, foto de documento, extrato,

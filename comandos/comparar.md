@@ -3,6 +3,7 @@ nome: comparar
 titulo: Comparar produtos
 descricao: Tabela comparativa objetiva entre dois ou mais produtos
 aceita_imagem: opcional
+modelo: padrao
 ---
 
 Monte um comparativo objetivo entre os produtos informados.
