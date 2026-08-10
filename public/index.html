@@ -79,5 +79,23 @@
     </div>
 
     <script type="module" src="/app.js"></script>
+
+    <!--
+      Rede de segurança: se app.js não carregar (erro de sintaxe, arquivo ausente,
+      import quebrado), a página fica muda e clicar em "Entrar" não faz nada.
+      Este trecho detecta isso e avisa, em vez de deixar o usuário no escuro.
+    -->
+    <script>
+      setTimeout(function () {
+        if (window.__appIniciado) return;
+        var erro = document.getElementById("erro-login");
+        if (erro) {
+          erro.textContent =
+            "O JavaScript da página não carregou. Abra F12 → Console e veja o erro.";
+          erro.hidden = false;
+        }
+        console.error("[boot] app.js não inicializou.");
+      }, 3000);
+    </script>
   </body>
 </html>

@@ -69,13 +69,26 @@ $("form-login").addEventListener("submit", async (e) => {
   const dados = Object.fromEntries(new FormData(e.target));
   const erro = $("erro-login");
   erro.hidden = true;
+  // Feedback imediato: clicar sempre muda algo na tela, mesmo que a rede demore.
+  const botao = e.target.querySelector('button[type="submit"]');
+  const rotulo = botao.textContent;
+  botao.disabled = true;
+  botao.textContent = "Entrando…";
+
+  const liberar = () => {
+    botao.disabled = false;
+    botao.textContent = rotulo;
+  };
+
   // Duas etapas separadas: falha de credencial e falha ao carregar a tela têm
   // causas diferentes e não devem exibir a mesma mensagem.
   try {
     estado.usuario = await api("/api/login", { method: "POST", body: JSON.stringify(dados) });
   } catch (ex) {
+    console.error("[login] falhou:", ex);
     erro.textContent = ex.message;
     erro.hidden = false;
+    liberar();
     return;
   }
 
@@ -85,6 +98,8 @@ $("form-login").addEventListener("submit", async (e) => {
     console.error("[app] falha ao carregar a interface:", ex);
     erro.textContent = `Login OK, mas a tela falhou ao carregar: ${ex.message}`;
     erro.hidden = false;
+  } finally {
+    liberar();
   }
 });
 
@@ -448,6 +463,9 @@ function fecharLateralMobile() {
 
 // Na abertura da página, 401 é o esperado (ninguém logado ainda) e não é erro.
 // Qualquer outra falha precisa aparecer, e não voltar em silêncio para o login.
+// Sinaliza para a rede de segurança no index.html que o módulo carregou.
+window.__appIniciado = true;
+
 iniciar().catch((ex) => {
   const esperado = /sess(ã|a)o expirou|Não autenticado/i.test(ex.message);
   console[esperado ? "log" : "error"]("[app] início:", ex.message);

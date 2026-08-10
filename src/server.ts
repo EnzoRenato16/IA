@@ -35,6 +35,10 @@ app.post("/api/login", (req, res) => {
   }
 
   const chave = email.trim().toLowerCase();
+  // Log de toda tentativa. Serve de diagnóstico: se clicar em "Entrar" não gera
+  // linha aqui, a requisição não saiu do navegador. Senha nunca é registrada.
+  console.log(`[login] tentativa: ${chave}`);
+
   const registro = tentativas.get(chave);
 
   if (registro && registro.n >= MAX_TENTATIVAS) {
@@ -54,6 +58,12 @@ app.post("/api/login", (req, res) => {
   }
 
   const usuario = acharUsuarioPorEmail(email);
+  if (!usuario) {
+    console.log(`[login] NEGADO: e-mail "${chave}" não existe no banco`);
+  } else if (!conferirSenha(senha, usuario.hashSenha)) {
+    console.log(`[login] NEGADO: senha incorreta para ${chave}`);
+  }
+
   if (!usuario || !conferirSenha(senha, usuario.hashSenha)) {
     const atual = tentativas.get(chave) ?? { n: 0, bloqueadoAte: 0 };
     atual.n += 1;
@@ -73,6 +83,7 @@ app.post("/api/login", (req, res) => {
 
   tentativas.delete(chave);
   criarSessao(res, usuario);
+  console.log(`[login] OK: ${chave} (${usuario.papel})`);
   res.json({ id: usuario.id, nome: usuario.nome, email: usuario.email, papel: usuario.papel });
 });
 
@@ -119,7 +130,19 @@ app.use("/api", rotasChat);
 
 // ---------- páginas ----------
 
-app.use(express.static(config.dirPublico));
+// "no-cache" obriga o navegador a revalidar a cada carga (responde 304 se nada
+// mudou). Sem isso, um app.js antigo em cache faz o usuário testar código velho
+// depois de um git pull — já custou um diagnóstico errado aqui.
+app.use(
+  express.static(config.dirPublico, {
+    etag: true,
+    setHeaders: (res, caminho) => {
+      if (/\.(html|js|css)$/i.test(caminho)) {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
+  }),
+);
 
 app.get("/admin", exigirLogin, (req, res) => {
   if (req.usuario?.papel !== "admin") {
@@ -134,6 +157,7 @@ app.get("*", (req, res) => {
     res.status(404).json({ erro: "Rota não encontrada" });
     return;
   }
+  res.setHeader("Cache-Control", "no-cache");
   res.sendFile(path.join(config.dirPublico, "index.html"));
 });
 
