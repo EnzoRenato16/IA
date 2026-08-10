@@ -21,7 +21,10 @@ app.use(express.json({ limit: "40mb" }));
 
 // ---------- autenticação ----------
 
-const tentativas = new Map<string, { n: number; ate: number }>();
+const MAX_TENTATIVAS = 5;
+const BLOQUEIO_MS = 5 * 60 * 1000;
+
+const tentativas = new Map<string, { n: number; bloqueadoAte: number }>();
 
 app.post("/api/login", (req, res) => {
   const { email, senha } = req.body ?? {};
@@ -32,17 +35,39 @@ app.post("/api/login", (req, res) => {
   }
 
   const chave = email.trim().toLowerCase();
-  const bloqueio = tentativas.get(chave);
-  if (bloqueio && bloqueio.n >= 5 && Date.now() < bloqueio.ate) {
-    res.status(429).json({ erro: "Muitas tentativas. Aguarde alguns minutos." });
-    return;
+  const registro = tentativas.get(chave);
+
+  if (registro && registro.n >= MAX_TENTATIVAS) {
+    const restanteMs = registro.bloqueadoAte - Date.now();
+    if (restanteMs > 0) {
+      // Importante: NÃO renovar o bloqueio aqui. Renovar a cada tentativa deixava
+      // o usuário travado para sempre se ele continuasse tentando.
+      const seg = Math.ceil(restanteMs / 1000);
+      res.status(429).json({
+        erro:
+          `Bloqueado por ${MAX_TENTATIVAS} tentativas erradas. ` +
+          `Tente de novo em ${seg > 60 ? `${Math.ceil(seg / 60)} min` : `${seg}s`}.`,
+      });
+      return;
+    }
+    tentativas.delete(chave); // bloqueio venceu
   }
 
   const usuario = acharUsuarioPorEmail(email);
   if (!usuario || !conferirSenha(senha, usuario.hashSenha)) {
-    const n = (bloqueio?.n ?? 0) + 1;
-    tentativas.set(chave, { n, ate: Date.now() + 5 * 60 * 1000 });
-    res.status(401).json({ erro: "E-mail ou senha incorretos" });
+    const atual = tentativas.get(chave) ?? { n: 0, bloqueadoAte: 0 };
+    atual.n += 1;
+    if (atual.n >= MAX_TENTATIVAS) atual.bloqueadoAte = Date.now() + BLOQUEIO_MS;
+    tentativas.set(chave, atual);
+
+    const restam = MAX_TENTATIVAS - atual.n;
+    let mensagem = "E-mail ou senha incorretos";
+    if (restam <= 0) {
+      mensagem += `. Login bloqueado por ${BLOQUEIO_MS / 60000} minutos.`;
+    } else if (restam <= 2) {
+      mensagem += `. ${restam} tentativa(s) antes do bloqueio.`;
+    }
+    res.status(401).json({ erro: mensagem });
     return;
   }
 
