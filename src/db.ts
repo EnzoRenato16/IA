@@ -53,8 +53,22 @@ const banco: Banco = carregar();
 
 let salvamentoPendente: NodeJS.Timeout | null = null;
 
+/**
+ * Traz para a memória usuários que foram criados por outro processo — é o caso do
+ * script `npm run criar-usuario` rodando com o servidor no ar. Sem isso, o servidor
+ * não veria o usuário novo e o sobrescreveria no próximo salvamento.
+ */
+function sincronizarUsuarios(): void {
+  const doDisco = carregar().usuarios;
+  const conhecidos = new Set(banco.usuarios.map((u) => u.id));
+  for (const u of doDisco) {
+    if (!conhecidos.has(u.id)) banco.usuarios.push(u);
+  }
+}
+
 /** Escrita atômica (grava em .tmp e renomeia) para não corromper o arquivo. */
 function gravarAgora(): void {
+  sincronizarUsuarios();
   fs.mkdirSync(path.dirname(config.arquivoDb), { recursive: true });
   const tmp = `${config.arquivoDb}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(banco, null, 2), "utf8");
@@ -92,6 +106,11 @@ export function listarUsuarios(): Usuario[] {
 
 export function acharUsuarioPorEmail(email: string): Usuario | undefined {
   const alvo = email.trim().toLowerCase();
+  const achado = banco.usuarios.find((u) => u.email === alvo);
+  if (achado) return achado;
+
+  // Não achou: pode ter sido criado por outro processo depois que o servidor subiu.
+  sincronizarUsuarios();
   return banco.usuarios.find((u) => u.email === alvo);
 }
 

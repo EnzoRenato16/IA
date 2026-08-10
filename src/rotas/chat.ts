@@ -40,6 +40,13 @@ rotasChat.get("/conversas", (req, res) => {
 });
 
 rotasChat.post("/conversas", (req, res) => {
+  // Reaproveita uma conversa vazia já existente, se houver. Sem isso, cada
+  // recarregamento de página criava uma "Nova conversa" órfã na lateral.
+  const vazia = listarConversas(req.usuario!.id).find((c) => c.mensagens.length === 0);
+  if (vazia) {
+    res.status(200).json({ id: vazia.id, titulo: vazia.titulo, mensagens: [] });
+    return;
+  }
   const conversa = criarConversa(req.usuario!.id, "Nova conversa");
   res.status(201).json({ id: conversa.id, titulo: conversa.titulo, mensagens: [] });
 });

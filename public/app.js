@@ -2,6 +2,25 @@ import { renderMarkdown } from "/md.js";
 
 const $ = (id) => document.getElementById(id);
 
+/**
+ * Referência guardada para o painel de boas-vindas.
+ * Ele vive dentro de #mensagens, que é limpo a cada troca de conversa — sem manter
+ * esta referência, limpar a área destruía o elemento (e a grade de comandos dentro
+ * dele) e as chamadas seguintes falhavam em elemento nulo.
+ */
+const elBoasVindas = $("boas-vindas");
+
+function limparMensagens() {
+  $("mensagens").replaceChildren();
+}
+
+function exibirBoasVindas(visivel) {
+  if (visivel && !elBoasVindas.isConnected) {
+    $("mensagens").appendChild(elBoasVindas);
+  }
+  elBoasVindas.hidden = !visivel;
+}
+
 const estado = {
   usuario: null,
   conversaId: null,
@@ -40,11 +59,21 @@ $("form-login").addEventListener("submit", async (e) => {
   const dados = Object.fromEntries(new FormData(e.target));
   const erro = $("erro-login");
   erro.hidden = true;
+  // Duas etapas separadas: falha de credencial e falha ao carregar a tela têm
+  // causas diferentes e não devem exibir a mesma mensagem.
   try {
     estado.usuario = await api("/api/login", { method: "POST", body: JSON.stringify(dados) });
-    await iniciar();
   } catch (ex) {
     erro.textContent = ex.message;
+    erro.hidden = false;
+    return;
+  }
+
+  try {
+    await iniciar();
+  } catch (ex) {
+    console.error("[app] falha ao carregar a interface:", ex);
+    erro.textContent = `Login OK, mas a tela falhou ao carregar: ${ex.message}`;
     erro.hidden = false;
   }
 });
@@ -75,7 +104,8 @@ async function iniciar() {
 }
 
 function montarGradeComandos() {
-  $("grade-comandos").innerHTML = estado.comandos
+  // Busca dentro da referência guardada: funciona mesmo com o painel fora do DOM.
+  elBoasVindas.querySelector("#grade-comandos").innerHTML = estado.comandos
     .map(
       (c) => `
       <button class="chip-comando" data-cmd="${c.nome}">
@@ -128,9 +158,8 @@ async function novaConversa() {
   const c = await api("/api/conversas", { method: "POST" });
   estado.conversaId = c.id;
   $("titulo-conversa").textContent = c.titulo;
-  $("mensagens").innerHTML = "";
-  $("mensagens").appendChild($("boas-vindas"));
-  $("boas-vindas").hidden = false;
+  limparMensagens();
+  exibirBoasVindas(true);
   await carregarConversas();
 }
 
@@ -138,8 +167,8 @@ async function abrirConversa(id) {
   const c = await api(`/api/conversas/${id}`);
   estado.conversaId = c.id;
   $("titulo-conversa").textContent = c.titulo;
-  $("mensagens").innerHTML = "";
-  $("boas-vindas").hidden = true;
+  limparMensagens();
+  exibirBoasVindas(false);
   for (const m of c.mensagens) {
     adicionarBolha(m.papel, m.texto, { comando: m.comando, imagens: m.imagens });
   }
@@ -153,7 +182,7 @@ $("btn-nova").addEventListener("click", novaConversa);
 // ---------- mensagens ----------
 
 function adicionarBolha(papel, texto, extras = {}) {
-  $("boas-vindas").hidden = true;
+  elBoasVindas.hidden = true;
   const div = document.createElement("div");
   div.className = `bolha ${papel}`;
 
