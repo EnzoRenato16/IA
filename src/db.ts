@@ -60,10 +60,14 @@ let salvamentoPendente: NodeJS.Timeout | null = null;
  */
 function sincronizarUsuarios(): void {
   const doDisco = carregar().usuarios;
-  const conhecidos = new Set(banco.usuarios.map((u) => u.id));
-  for (const u of doDisco) {
-    if (!conhecidos.has(u.id)) banco.usuarios.push(u);
-  }
+  const idsNoDisco = new Set(doDisco.map((u) => u.id));
+
+  // O disco é a verdade para usuários já existentes — assim uma troca de senha
+  // feita por `npm run redefinir-senha` vale de imediato, sem reiniciar.
+  // Usuários criados nesta instância e ainda não gravados são preservados.
+  const soNaMemoria = banco.usuarios.filter((u) => !idsNoDisco.has(u.id));
+  banco.usuarios.length = 0;
+  banco.usuarios.push(...doDisco, ...soNaMemoria);
 }
 
 /** Escrita atômica (grava em .tmp e renomeia) para não corromper o arquivo. */
@@ -105,13 +109,35 @@ export function listarUsuarios(): Usuario[] {
 }
 
 export function acharUsuarioPorEmail(email: string): Usuario | undefined {
-  const alvo = email.trim().toLowerCase();
-  const achado = banco.usuarios.find((u) => u.email === alvo);
-  if (achado) return achado;
-
-  // Não achou: pode ter sido criado por outro processo depois que o servidor subiu.
+  // Sempre relê do disco: o usuário pode ter sido criado, ou ter tido a senha
+  // trocada, por outro processo depois que o servidor subiu. O custo é ler um
+  // arquivo pequeno por tentativa de login.
   sincronizarUsuarios();
+  const alvo = email.trim().toLowerCase();
   return banco.usuarios.find((u) => u.email === alvo);
+}
+
+/**
+ * Troca a senha escrevendo direto no arquivo.
+ * Usado pelo script de linha de comando, que não é o servidor: se passasse pelo
+ * salvamento normal, a sincronização com o disco descartaria a própria alteração.
+ */
+export function redefinirSenhaNoDisco(email: string, hashSenha: string): boolean {
+  const disco = carregar();
+  const alvo = email.trim().toLowerCase();
+  const usuario = disco.usuarios.find((u) => u.email === alvo);
+  if (!usuario) return false;
+
+  usuario.hashSenha = hashSenha;
+
+  fs.mkdirSync(path.dirname(config.arquivoDb), { recursive: true });
+  const tmp = `${config.arquivoDb}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(disco, null, 2), "utf8");
+  fs.renameSync(tmp, config.arquivoDb);
+
+  const emMemoria = banco.usuarios.find((u) => u.email === alvo);
+  if (emMemoria) emMemoria.hashSenha = hashSenha;
+  return true;
 }
 
 export function acharUsuario(id: string): Usuario | undefined {

@@ -36,20 +36,30 @@ async function api(url, opcoes = {}) {
     headers: { "Content-Type": "application/json" },
     ...opcoes,
   });
-  if (r.status === 401) {
+
+  // 401 no /api/login significa credencial errada, não sessão expirada.
+  // Sem esta exceção, senha incorreta exibia "Sessão expirada".
+  if (r.status === 401 && url !== "/api/login") {
     mostrarLogin();
-    throw new Error("Sessão expirada");
+    throw new Error("Sua sessão expirou. Entre novamente.");
   }
+
   if (!r.ok) {
     const corpo = await r.json().catch(() => ({}));
-    throw new Error(corpo.erro || `Erro ${r.status}`);
+    console.error(`[api] ${opcoes.method ?? "GET"} ${url} -> ${r.status}`, corpo);
+    throw new Error(corpo.erro || `Erro ${r.status} em ${url}`);
   }
   return r.status === 204 ? null : r.json();
 }
 
-function mostrarLogin() {
+function mostrarLogin(mensagem) {
   $("tela-login").hidden = false;
   $("app").hidden = true;
+  const erro = $("erro-login");
+  if (mensagem) {
+    erro.textContent = mensagem;
+    erro.hidden = false;
+  }
 }
 
 // ---------- login ----------
@@ -436,4 +446,10 @@ function fecharLateralMobile() {
 
 // ---------- start ----------
 
-iniciar().catch(() => mostrarLogin());
+// Na abertura da página, 401 é o esperado (ninguém logado ainda) e não é erro.
+// Qualquer outra falha precisa aparecer, e não voltar em silêncio para o login.
+iniciar().catch((ex) => {
+  const esperado = /sess(ã|a)o expirou|Não autenticado/i.test(ex.message);
+  console[esperado ? "log" : "error"]("[app] início:", ex.message);
+  mostrarLogin(esperado ? undefined : `Falha ao carregar: ${ex.message}`);
+});

@@ -11,7 +11,9 @@
     "dev": "tsx watch --env-file=.env src/server.ts",
     "build": "tsc",
     "start": "node --env-file-if-exists=.env dist/src/server.js",
-    "criar-usuario": "tsx --env-file-if-exists=.env scripts/criar-usuario.ts"
+    "criar-usuario": "tsx --env-file-if-exists=.env scripts/criar-usuario.ts",
+    "listar-usuarios": "tsx --env-file-if-exists=.env scripts/listar-usuarios.ts",
+    "redefinir-senha": "tsx --env-file-if-exists=.env scripts/redefinir-senha.ts"
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.32.1",
